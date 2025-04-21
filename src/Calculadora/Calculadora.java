@@ -9,6 +9,7 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -20,33 +21,34 @@ public class Calculadora extends JFrame {
 	private JTextField historial;
 	private JTextField cifra;
 	
-	ScriptEngineManager manager = new ScriptEngineManager();
-	ScriptEngine engine = manager.getEngineByName("js");
-	
 	Operaciones operaciones = new Operaciones();
 	
-	public void entrarOperacion(String comando) {
-		String operadores = "+-*/";
-		if (cifra.getText().startsWith("= ")) {
-			historial.setText(cifra.getText().substring(2) + comando);
-		} else if (!historial.getText().isEmpty() && operadores.indexOf(historial.getText().substring(historial.getText().length() - 1)) != -1) {	
-			if (cifra.getText().matches("0")) {
-				historial.setText(historial.getText().substring(0, historial.getText().length() - 1) + comando);
+	// Método para entrar un operador
+	public void entrarOperacion(String comando) { 
+		if (!cifra.getText().startsWith("-")) { 
+			String operadores = "+-*/";
+			if (cifra.getText().startsWith("= ")) {
+				historial.setText(cifra.getText().substring(2) + comando);
+			} else if (!historial.getText().isEmpty() && operadores.indexOf(historial.getText().substring(historial.getText().length() - 1)) != -1) {
+				// Si el historial no está vacío y se encuentra un operador
+				if (cifra.getText().matches("0")) {
+					historial.setText(historial.getText().substring(0, historial.getText().length() - 1) + comando);
+				} else {
+					historial.setText(historial.getText() + cifra.getText());	
+					historial.setText(operaciones.calcular(historial.getText()) + comando);
+				}
+			} else if (cifra.getText().endsWith(".")) {
+				historial.setText(historial.getText() + cifra.getText() + "0" + comando);
 			} else {
-				historial.setText(historial.getText() + cifra.getText());	
-				historial.setText(operaciones.calcular(engine, historial.getText()) + comando);
+				historial.setText(historial.getText() + cifra.getText() + comando);	
 			}
-		} else if (cifra.getText().endsWith(".")) {
-			historial.setText(historial.getText() + cifra.getText() + "0" + comando);
-		} else {
-			historial.setText(historial.getText() + cifra.getText() + comando);	
+			cifra.setText("0");
 		}
-		cifra.setText("0");
 	}
 	
 	public Calculadora() {
-		setType(Type.POPUP);
 		setResizable(false);
+		setType(Type.POPUP);
 		setTitle("Calculadora");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 300, 300);
@@ -72,11 +74,15 @@ public class Calculadora extends JFrame {
 		contentPane.add(cifra);
 		cifra.setText("0");
 		
+		// Listener para varios digitos de igual comportamiento
 		ActionListener botonesDigitos = new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
 				if (cifra.getText().startsWith("-0") && !cifra.getText().contains(".")) {
 					cifra.setText("-" + event.getActionCommand());
 				} else if (cifra.getText().matches("0")) {
+					cifra.setText(event.getActionCommand());
+				} else if (cifra.getText().startsWith("= ")){
+					historial.setText("");
 					cifra.setText(event.getActionCommand());
 				} else {
 					cifra.setText(cifra.getText() + event.getActionCommand());
@@ -84,6 +90,7 @@ public class Calculadora extends JFrame {
 			}
 		};
 		
+		// Listener para varios operadores con igual comportamiento
 		ActionListener botonesOperaciones = new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
 				entrarOperacion(event.getActionCommand());
@@ -96,13 +103,15 @@ public class Calculadora extends JFrame {
 		contentPane.add(boton0);
 		boton0.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
-				if (!cifra.getText().startsWith("-0") || cifra.getText().contains(".")) {
-					if (cifra.getText().matches("0")) {
-						cifra.setText(event.getActionCommand());
-					} else {
-						cifra.setText(cifra.getText() + event.getActionCommand());
+				if (!cifra.getText().startsWith("= ")) {
+					if (!cifra.getText().startsWith("-0") || cifra.getText().contains(".")) {
+						if (cifra.getText().matches("0")) {
+							cifra.setText(event.getActionCommand());
+						} else {
+							cifra.setText(cifra.getText() + event.getActionCommand());
+						}
 					}
-				}
+				}		
 			}
 		});
 			
@@ -167,13 +176,15 @@ public class Calculadora extends JFrame {
 		contentPane.add(botonPunto);
 		botonPunto.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
-				if (cifra.getText().indexOf(".") == -1) {
-					if (cifra.getText().length() == 0 || cifra.getText().matches("-")) {
-						cifra.setText(cifra.getText() + "0.");
-					} else {
-						cifra.setText(cifra.getText() + ".");
-					}				
-				}
+				if (!cifra.getText().startsWith("= ")) {
+					if (cifra.getText().indexOf(".") == -1) {
+						if (cifra.getText().length() == 0 || cifra.getText().matches("-")) {
+							cifra.setText(cifra.getText() + "0.");
+						} else {
+							cifra.setText(cifra.getText() + ".");
+						}				
+					}
+				}	
 			}
 		});
 		
@@ -199,7 +210,7 @@ public class Calculadora extends JFrame {
 					cifra.setText(event.getActionCommand());
 				} else {
 					entrarOperacion(event.getActionCommand());
-				}
+				} 
 			}
 		});
 		
@@ -215,9 +226,16 @@ public class Calculadora extends JFrame {
 		contentPane.add(botonIgual);
 		botonIgual.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
-				if (historial.getText().length() != 0 && cifra.getText().length() != 0) {
+				if (!cifra.getText().startsWith("= ") && historial.getText().length() != 0 && cifra.getText().length() != 0) {
 					historial.setText(historial.getText() + cifra.getText());
-					cifra.setText("= " + operaciones.calcular(engine, historial.getText()));
+					String resultado = operaciones.calcular(historial.getText());
+					if (resultado.isEmpty()) { // Mostrar mensaje de error si se obtiene un resultado no esperado
+						JOptionPane.showMessageDialog(null, "No es posible calcular esa operación", "Error", JOptionPane.ERROR_MESSAGE);
+						cifra.setText("0");
+						historial.setText("");
+					} else {
+						cifra.setText("= " + resultado);
+					}	
 				}				
 			}
 		});
@@ -239,10 +257,12 @@ public class Calculadora extends JFrame {
 		contentPane.add(botonBorrar);
 		botonBorrar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
-				if (cifra.getText().length() == 1) {
-					cifra.setText("0");
-				} else if (cifra.getText().length() > 0) {
-					cifra.setText(cifra.getText().substring(0, cifra.getText().length() - 1));
+				if (!cifra.getText().startsWith("= ")) {
+					if (cifra.getText().length() == 1) {
+						cifra.setText("0");
+					} else if (cifra.getText().length() > 0) {
+						cifra.setText(cifra.getText().substring(0, cifra.getText().length() - 1));
+					}	
 				}			
 			}
 		});
